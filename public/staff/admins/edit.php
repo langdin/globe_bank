@@ -63,7 +63,7 @@ if(is_post_request()) {
         <dt>Email</dt>
         <dd><input type="text" name="email" value="<?php echo h($admin['email']); ?>" /><br /></dd>
       </dl>
-
+      <hr>
       <dl>
         <dt>Password</dt>
         <dd><input type="password" name="password" value="" /></dd>
@@ -73,6 +73,9 @@ if(is_post_request()) {
         <dt>Confirm Password</dt>
         <dd><input type="password" name="confirm_password" value="" /></dd>
       </dl>
+      <p>
+        Passwords is required only if you want to change password.
+      </p>
       <p>
         Passwords should be at least 12 characters and include at least one uppercase letter, lowercase letter, number, and symbol.
       </p>
