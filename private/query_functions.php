@@ -74,6 +74,8 @@
       return $errors;
     }
 
+    shift_subject_position(0, $subject['position']);
+
     $sql = "INSERT INTO subjects ";
     $sql .= "(menu_name, position, visible) ";
     $sql .= "VALUES (";
@@ -101,6 +103,9 @@
       return $errors;
     }
 
+    $old_subject = find_subject_by_id($subject['id']);
+    shift_subject_position($old_subject['position'], $subject['position'], $subject['id']);
+
     $sql = "UPDATE subjects SET ";
     $sql .= "menu_name='" . db_escape($db, $subject['menu_name']) . "', ";
     $sql .= "position='" . db_escape($db, $subject['position']) . "', ";
@@ -124,6 +129,9 @@
   function delete_subject($id) {
     global $db;
 
+    $subject = find_subject_by_id($id);
+    shift_subject_position($subject['position'], 0, $subject['id']);
+
     $sql = "DELETE FROM subjects ";
     $sql .= "WHERE id='" . db_escape($db, $id) . "' ";
     $sql .= "LIMIT 1";
@@ -134,6 +142,43 @@
       return true;
     } else {
       // DELETE failed
+      echo mysqli_error($db);
+      db_disconnect($db);
+      exit;
+    }
+  }
+
+  function shift_subject_position($start_pos, $end_pos, $current_id=0) {
+    global $db;
+
+    $shift = "";
+    $position_condition = "";
+
+    if ($start_pos == 0) {
+      $shift = " + 1";
+      $position_condition = ">= '" . db_escape($db, $end_pos) . "'";
+    } elseif ($end_pos == 0) {
+      $shift = " - 1";
+      $position_condition = "> '" . db_escape($db, $start_pos) . "'";
+    } elseif ($start_pos < $end_pos) {
+      $shift = " - 1";
+      $position_condition = "> '" . db_escape($db, $start_pos) . "' AND position <= '" . db_escape($db, $end_pos) . "'";
+    } elseif ($start_pos > $end_pos) {
+      $shift = " + 1";
+      $position_condition = ">= '" . db_escape($db, $end_pos) . "' AND position < '" . db_escape($db, $start_pos) . "'";
+    }
+
+    $sql = "UPDATE subjects SET ";
+    $sql .= "position=position" . $shift . " ";
+    $sql .= "WHERE position " . $position_condition . " ";
+    $sql .= "AND id != '" . db_escape($db, $current_id) . "' ";
+
+    $result = mysqli_query($db, $sql);
+    // For UPDATE statements, $result is true/false
+    if($result) {
+      return true;
+    } else {
+      // UPDATE failed
       echo mysqli_error($db);
       db_disconnect($db);
       exit;
@@ -222,6 +267,8 @@
       return $errors;
     }
 
+    shift_page_position(0, $page['position'], $page['subject_id']);
+
     $sql = "INSERT INTO pages ";
     $sql .= "(subject_id, menu_name, position, visible, content) ";
     $sql .= "VALUES (";
@@ -251,6 +298,9 @@
       return $errors;
     }
 
+    $old_page = find_page_by_id($page['id']);
+    shift_page_position($old_page['position'], $page['position'], $page['subject_id'], $page['id']);
+
     $sql = "UPDATE pages SET ";
     $sql .= "subject_id='" . db_escape($db, $page['subject_id']) . "', ";
     $sql .= "menu_name='" . db_escape($db, $page['menu_name']) . "', ";
@@ -275,6 +325,9 @@
 
   function delete_page($id) {
     global $db;
+
+    $page = find_page_by_id($id);
+    shift_page_position($page['position'], 0, $page['subject_id'], $page['id']);
 
     $sql = "DELETE FROM pages ";
     $sql .= "WHERE id='" . db_escape($db, $id) . "' ";
@@ -325,6 +378,44 @@
     mysqli_free_result($result);
     $count = $row[0];
     return $count;
+  }
+
+  function shift_page_position($start_pos, $end_pos, $subject_id, $current_id=0) {
+    global $db;
+
+    $shift = "";
+    $position_condition = "";
+
+    if ($start_pos == 0) {
+      $shift = " + 1";
+      $position_condition = ">= '" . db_escape($db, $end_pos) . "'";
+    } elseif ($end_pos == 0) {
+      $shift = " - 1";
+      $position_condition = "> '" . db_escape($db, $start_pos) . "'";
+    } elseif ($start_pos < $end_pos) {
+      $shift = " - 1";
+      $position_condition = "> '" . db_escape($db, $start_pos) . "' AND position <= '" . db_escape($db, $end_pos) . "'";
+    } elseif ($start_pos > $end_pos) {
+      $shift = " + 1";
+      $position_condition = ">='" . db_escape($db, $end_pos) . "' AND position < '" . db_escape($db, $start_pos) . "'";
+    }
+
+    $sql = "UPDATE pages SET ";
+    $sql .= "position=position" . $shift . " ";
+    $sql .= "WHERE position " . $position_condition . " ";
+    $sql .= "AND id != '" . db_escape($db, $current_id) . "' ";
+    $sql .= "AND subject_id = '". $subject_id . "'";
+
+    $result = mysqli_query($db, $sql);
+    // For UPDATE statements, $result is true/false
+    if($result) {
+      return true;
+    } else {
+      // UPDATE failed
+      echo mysqli_error($db);
+      db_disconnect($db);
+      exit;
+    }
   }
 
   // Admins
